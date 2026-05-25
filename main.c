@@ -4,8 +4,6 @@
 #include "hop.c"
 #include "reveal.c"
 #include "log.c"
-#include "proclore.c"
-#include "seek.c"
 
 int main() {
     initialise_global();
@@ -100,23 +98,6 @@ int main() {
                 }
                 else
                     log_print();
-            }
-            else if(strcmp(command, "proclore") == 0){
-                proclore(argument);
-            }
-            else if(strcmp(command, "seek") == 0){
-                // Collect all arguments for seek command
-                char *args[10]; // Maximum 10 arguments
-                int arg_count = 0;
-                
-                char *current_arg = argument;
-                while(current_arg != NULL && arg_count < 10){
-                    args[arg_count] = current_arg;
-                    arg_count++;
-                    current_arg = strtok_r(NULL, " ", &saveptr_args);
-                }
-                
-                seek(args, arg_count);
             }
             else if (strcmp(command, "exit") == 0) 
                 return 0;
