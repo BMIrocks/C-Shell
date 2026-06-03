@@ -1,9 +1,4 @@
 #include "main.h"
-#include "globals.c"
-#include "prompt.c"
-#include "hop.c"
-#include "reveal.c"
-#include "log.c"
 
 int main() {
     initialise_global();
