@@ -15,9 +15,15 @@
 #include <grp.h>
 #include <time.h>
 #include <ctype.h>
+#include <signal.h>
+#include <sys/sysctl.h>
+#include <libproc.h>
 #include "globals.h"
 #include "prompt.h"
 #include "hop.h"
 #include "reveal.h"
 #include "log.h"
+#include "proclore.h"
+#include "seek.h"
+
 #endif
