@@ -6,6 +6,7 @@
 #include "log.c"
 #include "proclore.c"
 #include "seek.c"
+#include "echo.c"
 
 
 int main() {
@@ -118,6 +119,20 @@ int main() {
                 }
                 
                 seek(args, arg_count);
+            }
+            else if(strcmp(command, "echo") == 0){
+                // Collect all arguments for echo command
+                char *args[100]; // Maximum 100 arguments
+                int arg_count = 0;
+                
+                char *current_arg = argument;
+                while(current_arg != NULL && arg_count < 100){
+                    args[arg_count] = current_arg;
+                    arg_count++;
+                    current_arg = strtok_r(NULL, " ", &saveptr_args);
+                }
+                
+                echo_command(args, arg_count);
             }
             else if (strcmp(command, "exit") == 0) 
                 return 0;

@@ -25,5 +25,6 @@
 #include "log.h"
 #include "proclore.h"
 #include "seek.h"
+#include "echo.h"
 
 #endif
