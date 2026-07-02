@@ -7,6 +7,7 @@
 #include "proclore.c"
 #include "seek.c"
 #include "echo.c"
+#include "iman.c"
 
 
 int main() {
@@ -62,8 +63,9 @@ int main() {
                 continue;
             }
 
-            if (strcmp(command, "hop") == 0) 
+            if (strcmp(command, "hop") == 0){ 
                 hop(argument); 
+            }
             else if(strcmp(command, "reveal") == 0){
                 int a_flag = 0;
                 int l_flag = 0;
@@ -107,8 +109,7 @@ int main() {
                 proclore(argument);
             }
             else if(strcmp(command, "seek") == 0){
-                // Collect all arguments for seek command
-                char *args[10]; // Maximum 10 arguments
+                char *args[10]; 
                 int arg_count = 0;
                 
                 char *current_arg = argument;
@@ -121,8 +122,7 @@ int main() {
                 seek(args, arg_count);
             }
             else if(strcmp(command, "echo") == 0){
-                // Collect all arguments for echo command
-                char *args[100]; // Maximum 100 arguments
+                char *args[100]; 
                 int arg_count = 0;
                 
                 char *current_arg = argument;
@@ -133,6 +133,17 @@ int main() {
                 }
                 
                 echo_command(args, arg_count);
+            }
+            else if(strcmp(command, "iMan") == 0){
+                char *args[100]; 
+                int arg_count = 0;
+                char *current_arg = argument;
+                while(current_arg != NULL && arg_count < 100){
+                    args[arg_count] = current_arg;
+                    arg_count++;
+                    current_arg = strtok_r(NULL, " ", &saveptr_args);
+                }
+                iman_command(args, arg_count);
             }
             else if (strcmp(command, "exit") == 0) 
                 return 0;

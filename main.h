@@ -26,5 +26,6 @@
 #include "proclore.h"
 #include "seek.h"
 #include "echo.h"
+#include "iman.h"
 
 #endif
