@@ -1,13 +1,13 @@
 #include "main.h"
-#include "globals.c"
-#include "prompt.c"
-#include "hop.c"
-#include "reveal.c"
-#include "log.c"
-#include "proclore.c"
-#include "seek.c"
-#include "echo.c"
-#include "iman.c"
+#include "globals.h"
+#include "prompt.h"
+#include "hop.h"
+#include "reveal.h"
+#include "log.h"
+#include "proclore.h"
+#include "seek.h"
+#include "echo.h"
+#include "iman.h"
 
 
 int main() {
