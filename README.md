@@ -201,7 +201,7 @@ seek [flags] <search_term> [target_directory]
 **Flags**
 - `-f` : Search only for files (ignore directories)
 - `-d` : Search only for directories (ignore files)
-- `-e` : Execute action if single match found (print file content or change to directory)
+- `-e` : Execute action if single match found (change to directory)
 
 **Examples**
 ```bash
