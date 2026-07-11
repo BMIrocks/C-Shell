@@ -65,6 +65,11 @@ void iman_command(char **args, int arg_count) {
     
     // Collect entire response first
     char *full_response = malloc(1);
+    if (full_response == NULL) {
+        perror("malloc");
+        close(sockfd);
+        return;
+    }
     full_response[0] = '\0';
     size_t total_length = 0;
     char buffer[BUFFER_SIZE];
@@ -73,7 +78,14 @@ void iman_command(char **args, int arg_count) {
     while ((bytes_received = recv(sockfd, buffer, BUFFER_SIZE - 1, 0)) > 0) {
         buffer[bytes_received] = '\0';
         
-        full_response = realloc(full_response, total_length + bytes_received + 1);
+        char *resized = realloc(full_response, total_length + bytes_received + 1);
+        if (resized == NULL) {
+            perror("realloc");
+            free(full_response);
+            close(sockfd);
+            return;
+        }
+        full_response = resized;
         if (total_length == 0) {
             strcpy(full_response, buffer);
         } 

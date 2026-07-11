@@ -1,24 +1,62 @@
 #include "main.h"
 
+static int copy_path(char *dest, size_t dest_size, const char *src) {
+    size_t src_len = strlen(src);
+    if (src_len >= dest_size) {
+        return -1;
+    }
+
+    memcpy(dest, src, src_len + 1);
+    return 0;
+}
+
+static int join_path(char *dest, size_t dest_size, const char *base, const char *name) {
+    int written = snprintf(dest, dest_size, "%s/%s", base, name);
+    if (written < 0 || (size_t)written >= dest_size) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static void free_entries(char **entries, int count) {
+    for (int i = 0; i < count; ++i) {
+        free(entries[i]);
+    }
+}
 
 void reveal(const char *path, int a_flag, int l_flag){
 
     char resolved_path[PATH_MAX];
     if (path == NULL || strlen(path) == 0) {
-        strcpy(resolved_path, ".");
+        if (copy_path(resolved_path, sizeof(resolved_path), ".") != 0) {
+            fprintf(stderr, "reveal: path too long\n");
+            return;
+        }
     }
     else if (path[0] == '~') {
-        if (path[1] == '\0') 
-            strcpy(resolved_path, HOME);
-        else if (path[1] == '/') 
-            snprintf(resolved_path, sizeof(resolved_path), "%s%s", HOME, path + 1);
+        if (path[1] == '\0') {
+            if (copy_path(resolved_path, sizeof(resolved_path), HOME) != 0) {
+                fprintf(stderr, "reveal: path too long\n");
+                return;
+            }
+        }
+        else if (path[1] == '/') {
+            int written = snprintf(resolved_path, sizeof(resolved_path), "%s%s", HOME, path + 1);
+            if (written < 0 || (size_t)written >= sizeof(resolved_path)) {
+                fprintf(stderr, "reveal: path too long\n");
+                return;
+            }
+        }
         else{
             fprintf(stderr, "Unsupported ~ usage: %s\n", path);
             return;
         }
     }
-    else 
-        strncpy(resolved_path, path, sizeof(resolved_path));
+    else if (copy_path(resolved_path, sizeof(resolved_path), path) != 0) {
+        fprintf(stderr, "reveal: path too long\n");
+        return;
+    }
 
 
     DIR* dir = opendir(resolved_path);
@@ -39,6 +77,7 @@ void reveal(const char *path, int a_flag, int l_flag){
         if (entries[count] == NULL) {
             perror("reveal: strdup failed");
             closedir(dir);
+            free_entries(entries, count);
             return;
         }
         count++;
@@ -50,7 +89,11 @@ void reveal(const char *path, int a_flag, int l_flag){
 
     for (int i = 0; i < count; ++i) {
         char full_path[PATH_MAX];
-        snprintf(full_path, sizeof(full_path), "%s/%s", resolved_path, entries[i]);
+        if (join_path(full_path, sizeof(full_path), resolved_path, entries[i]) != 0) {
+            fprintf(stderr, "reveal: path too long: %s/%s\n", resolved_path, entries[i]);
+            free(entries[i]);
+            continue;
+        }
 
         struct stat st;
         if (stat(full_path, &st) == -1) {
@@ -78,7 +121,7 @@ void reveal(const char *path, int a_flag, int l_flag){
             char timebuf[64];
             strftime(timebuf, sizeof(timebuf), "%b %d %H:%M", localtime(&st.st_mtime));
 
-            printf("%s %2hu %s %s %5lld %s ", perms, st.st_nlink,
+            printf("%s %2lu %s %s %5lld %s ", perms, (unsigned long)st.st_nlink,
                 pw ? pw->pw_name : "?", gr ? gr->gr_name : "?",
                 (long long)st.st_size, timebuf);
         }
@@ -101,4 +144,3 @@ int cmpstring(const void *a, const void *b) {
     const char **sb = (const char **)b;
     return strcmp(*sa, *sb);
 }
-

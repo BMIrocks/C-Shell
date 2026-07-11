@@ -18,6 +18,10 @@ int main() {
         print_prompt();
 
         if (fgets(input, sizeof(input), stdin) == NULL) {
+            if (feof(stdin)) {
+                printf("\n");
+                break;
+            }
             perror("fgets failed");
             continue;
         }

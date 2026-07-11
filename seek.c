@@ -10,11 +10,28 @@ typedef struct {
     int capacity;
 } SearchResults;
 
+static int join_path(char *dest, size_t dest_size, const char *base, const char *name) {
+    int written = snprintf(dest, dest_size, "%s/%s", base, name);
+    if (written < 0 || (size_t)written >= dest_size) {
+        return -1;
+    }
+
+    return 0;
+}
+
 // Initialize search results
 void init_results(SearchResults *results) {
     results->capacity = 100;
     results->files = malloc(results->capacity * sizeof(char*));
     results->directories = malloc(results->capacity * sizeof(char*));
+    if (results->files == NULL || results->directories == NULL) {
+        free(results->files);
+        free(results->directories);
+        results->files = NULL;
+        results->directories = NULL;
+        results->capacity = 0;
+        return;
+    }
     results->file_count = 0;
     results->dir_count = 0;
 }
@@ -35,9 +52,17 @@ void free_results(SearchResults *results) {
 void add_file(SearchResults *results, const char *path) {
     if (results->file_count >= results->capacity) {
         results->capacity *= 2;
-        results->files = realloc(results->files, results->capacity * sizeof(char*));
+        char **resized = realloc(results->files, results->capacity * sizeof(char*));
+        if (resized == NULL) {
+            return;
+        }
+        results->files = resized;
     }
-    results->files[results->file_count] = strdup(path);
+    char *copy = strdup(path);
+    if (copy == NULL) {
+        return;
+    }
+    results->files[results->file_count] = copy;
     results->file_count++;
 }
 
@@ -45,9 +70,17 @@ void add_file(SearchResults *results, const char *path) {
 void add_directory(SearchResults *results, const char *path) {
     if (results->dir_count >= results->capacity) {
         results->capacity *= 2;
-        results->directories = realloc(results->directories, results->capacity * sizeof(char*));
+        char **resized = realloc(results->directories, results->capacity * sizeof(char*));
+        if (resized == NULL) {
+            return;
+        }
+        results->directories = resized;
     }
-    results->directories[results->dir_count] = strdup(path);
+    char *copy = strdup(path);
+    if (copy == NULL) {
+        return;
+    }
+    results->directories[results->dir_count] = copy;
     results->dir_count++;
 }
 
@@ -69,7 +102,9 @@ void search_recursive(const char *current_path, const char *target, const char *
         // Check if name matches (exact match or starts with target)
         if (strncmp(entry->d_name, target, strlen(target)) == 0) {
             char full_path[PATH_MAX];
-            snprintf(full_path, sizeof(full_path), "%s/%s", current_path, entry->d_name);
+            if (join_path(full_path, sizeof(full_path), current_path, entry->d_name) != 0) {
+                continue;
+            }
             
             struct stat st;
             if (stat(full_path, &st) == 0) {
@@ -98,7 +133,9 @@ void search_recursive(const char *current_path, const char *target, const char *
         
         // Recursively search subdirectories
         char subdir_path[PATH_MAX];
-        snprintf(subdir_path, sizeof(subdir_path), "%s/%s", current_path, entry->d_name);
+        if (join_path(subdir_path, sizeof(subdir_path), current_path, entry->d_name) != 0) {
+            continue;
+        }
         
         struct stat st;
         if (stat(subdir_path, &st) == 0 && S_ISDIR(st.st_mode)) {
@@ -193,6 +230,10 @@ void seek(char **args, int arg_count) {
     // Perform search
     SearchResults results;
     init_results(&results);
+    if (results.files == NULL || results.directories == NULL) {
+        fprintf(stderr, "seek: memory allocation failed\n");
+        return;
+    }
     
     search_recursive(resolved_path, target, resolved_path, &results, only_dirs, only_files);
     
@@ -206,7 +247,11 @@ void seek(char **args, int arg_count) {
         if (results.file_count == 1 && results.dir_count == 0) {
             // Single file found - print its content
             char full_path[PATH_MAX];
-            snprintf(full_path, sizeof(full_path), "%s/%s", resolved_path, results.files[0]);
+            if (join_path(full_path, sizeof(full_path), resolved_path, results.files[0]) != 0) {
+                fprintf(stderr, "seek: path too long\n");
+                free_results(&results);
+                return;
+            }
             
             FILE *file = fopen(full_path, "r");
             if (file == NULL) {
@@ -221,7 +266,11 @@ void seek(char **args, int arg_count) {
         } else if (results.dir_count == 1 && results.file_count == 0) {
             // Single directory found - change to it
             char full_path[PATH_MAX];
-            snprintf(full_path, sizeof(full_path), "%s/%s", resolved_path, results.directories[0]);
+            if (join_path(full_path, sizeof(full_path), resolved_path, results.directories[0]) != 0) {
+                fprintf(stderr, "seek: path too long\n");
+                free_results(&results);
+                return;
+            }
             
             if (chdir(full_path) != 0) {
                 printf("Missing permissions for task!\n");
