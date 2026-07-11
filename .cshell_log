@@ -1,0 +1,84 @@
+1 echo hello world
+2 reveal
+3 seek main .
+4 proclore
+5 log
+6 exit
+7 echo "hello world"
+8 hop ..
+9 reveal main.c
+10 seek -f main .
+11 log
+12 exit
+13 echo hi there
+14 echo "hello world"
+15 reveal main.c
+16 seek -f main .
+17 hop ..
+18 hop -
+19 log
+20 exit
+21 echo "quoted text"; echo second
+22 reveal -l main.c
+23 seek -e -f README .
+24 proclore
+25 exit
+26 echo hi there
+27 echo "hello world"
+28 reveal main.c
+29 reveal -l main.c
+30 seek -f main .
+31 seek -e -d .git .
+32 hop ..
+33 hop -
+34 proclore
+35 log
+36 exit
+37 echo "quoted text"; echo second
+38 reveal -l main.c
+39 seek -e README .
+40 proclore
+41 exit
+42 echo "quoted text"; echo second
+43 reveal -l main.c
+44 seek -e README .
+45 proclore
+46 exit
+47 log
+48 history
+49 proclore
+50 seek -e README
+51 gcc -Wall -Wextra -Wpedantic main.c globals.c prompt.c hop.c reveal.c log.c proclore.c seek.c echo.c iman.c -o cshell
+52 exit
+53 log
+54 echo "quote"
+55 echo "quote"; echo sec
+56 history
+57 log
+58 hop one
+59 reveal
+60 hop main.c
+61 hop -
+62 hop ~
+63 reveal
+64 proclore
+65 hop honours
+66 hop main
+67 hop
+68 hop C-SHELL
+69 reveal
+70 hop C-Shell
+71 reveal
+72 hop prompt
+73 hop prompt.c
+74 seek
+75 seek main.c
+76 hop main.c
+77 echo main.c
+78 open
+79 open main.c
+80 nano main.c
+81 cd ..
+82 cd
+83 reveal -a
+84 reveal -l

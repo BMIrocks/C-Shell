@@ -16,8 +16,10 @@
 #include <time.h>
 #include <ctype.h>
 #include <signal.h>
+#ifdef __APPLE__
 #include <sys/sysctl.h>
 #include <libproc.h>
+#endif
 #include "globals.h"
 #include "prompt.h"
 #include "hop.h"
