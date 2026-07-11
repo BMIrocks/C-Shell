@@ -19,6 +19,16 @@ static int join_path(char *dest, size_t dest_size, const char *base, const char 
     return 0;
 }
 
+static int copy_path(char *dest, size_t dest_size, const char *src) {
+    size_t src_len = strlen(src);
+    if (src_len >= dest_size) {
+        return -1;
+    }
+
+    memcpy(dest, src, src_len + 1);
+    return 0;
+}
+
 // Initialize search results
 void init_results(SearchResults *results) {
     results->capacity = 100;
@@ -107,16 +117,20 @@ void search_recursive(const char *current_path, const char *target, const char *
             }
             
             struct stat st;
-            if (stat(full_path, &st) == 0) {
+            if (lstat(full_path, &st) == 0) {
                 // Calculate relative path from base directory
                 char relative_path[PATH_MAX];
                 if (strcmp(current_path, base_path) == 0) {
-                    strcpy(relative_path, entry->d_name);
+                    if (copy_path(relative_path, sizeof(relative_path), entry->d_name) != 0) {
+                        continue;
+                    }
                 } else {
                     // Remove base_path prefix and add entry name
                     const char *rel_start = current_path + strlen(base_path);
                     if (*rel_start == '/') rel_start++; // Skip leading slash
-                    snprintf(relative_path, sizeof(relative_path), "%s/%s", rel_start, entry->d_name);
+                    if (join_path(relative_path, sizeof(relative_path), rel_start, entry->d_name) != 0) {
+                        continue;
+                    }
                 }
                 
                 if (S_ISDIR(st.st_mode)) {
@@ -138,7 +152,7 @@ void search_recursive(const char *current_path, const char *target, const char *
         }
         
         struct stat st;
-        if (stat(subdir_path, &st) == 0 && S_ISDIR(st.st_mode)) {
+        if (lstat(subdir_path, &st) == 0 && S_ISDIR(st.st_mode)) {
             search_recursive(subdir_path, target, base_path, results, only_dirs, only_files);
         }
     }
@@ -149,21 +163,35 @@ void search_recursive(const char *current_path, const char *target, const char *
 // Resolve path with ~ and . symbols
 void resolve_path(const char *path, char *resolved) {
     if (path == NULL) {
-        getcwd(resolved, PATH_MAX);
+        if (getcwd(resolved, PATH_MAX) == NULL) {
+            resolved[0] = '\0';
+        }
         return;
     }
     
     if (path[0] == '~') {
-        strcpy(resolved, HOME);
+        if (copy_path(resolved, PATH_MAX, HOME) != 0) {
+            resolved[0] = '\0';
+            return;
+        }
         if (strlen(path) > 1) {
-            strcat(resolved, path + 1);
+            size_t current_length = strlen(resolved);
+            size_t suffix_length = strlen(path + 1);
+            if (current_length + suffix_length >= PATH_MAX) {
+                resolved[0] = '\0';
+                return;
+            }
+            memcpy(resolved + current_length, path + 1, suffix_length + 1);
         }
     } else if (path[0] == '/') {
-        strcpy(resolved, path);
+        if (copy_path(resolved, PATH_MAX, path) != 0) {
+            resolved[0] = '\0';
+        }
     } else {
-        getcwd(resolved, PATH_MAX);
-        strcat(resolved, "/");
-        strcat(resolved, path);
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) == NULL || join_path(resolved, PATH_MAX, cwd, path) != 0) {
+            resolved[0] = '\0';
+        }
     }
 }
 
@@ -219,6 +247,10 @@ void seek(char **args, int arg_count) {
     // Resolve target directory path
     char resolved_path[PATH_MAX];
     resolve_path(target_dir, resolved_path);
+    if (resolved_path[0] == '\0') {
+        fprintf(stderr, "seek: failed to resolve target directory\n");
+        return;
+    }
     
     // Check if target directory exists and is accessible
     struct stat st;
@@ -271,9 +303,18 @@ void seek(char **args, int arg_count) {
                 free_results(&results);
                 return;
             }
-            
+
+            char previous_dir[PATH_MAX];
+            if (getcwd(previous_dir, sizeof(previous_dir)) == NULL) {
+                perror("seek: getcwd failed");
+                free_results(&results);
+                return;
+            }
+
             if (chdir(full_path) != 0) {
                 printf("Missing permissions for task!\n");
+            } else if (copy_path(PREVIOUS_DIR, sizeof(PREVIOUS_DIR), previous_dir) != 0) {
+                fprintf(stderr, "seek: failed to store previous directory\n");
             }
         } else {
             // Multiple results - just print them

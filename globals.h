@@ -8,12 +8,14 @@
 #define COLOR_BLACK   "\x1b[1;30m"
 
 #define MAX_LOG_COUNT 15
-#define LOG_FILE "/Users/dhimantbhuva/Documents/C Shell/.log.txt"
+#define LOG_FILE ".cshell_log"
 
 extern char HOME[PATH_MAX];
 extern char USERNAME[256];
 extern char HOSTNAME[256];
 extern char PREVIOUS_DIR[PATH_MAX];
+extern char SHELL_ROOT[PATH_MAX];
+extern char LOG_FILE_PATH[PATH_MAX];
 
 extern char* LOG_BUFFER[MAX_LOG_COUNT];   
 extern int LOG_START;                     
@@ -22,4 +24,5 @@ extern int LOG_COUNT_GLOBAL;
 
 
 void initialise_global();
+void cleanup_global();
 #endif

@@ -10,21 +10,33 @@ void add_log(const char* command){
     clean_command[strcspn(clean_command, "\n")] = '\0';
 
     if (LOG_SIZE < MAX_LOG_COUNT) {
-        LOG_BUFFER[(LOG_START + LOG_SIZE) % MAX_LOG_COUNT] = strdup(clean_command);
+        char *copy = strdup(clean_command);
+        if (copy == NULL) {
+            perror("add_log: strdup");
+            return;
+        }
+        LOG_BUFFER[(LOG_START + LOG_SIZE) % MAX_LOG_COUNT] = copy;
         LOG_SIZE++;
     } 
     else {
+        char *copy = strdup(clean_command);
+        if (copy == NULL) {
+            perror("add_log: strdup");
+            return;
+        }
         free(LOG_BUFFER[LOG_START]);
-        LOG_BUFFER[LOG_START] = strdup(clean_command);
+        LOG_BUFFER[LOG_START] = copy;
         LOG_START = (LOG_START + 1) % MAX_LOG_COUNT;
     }
 
-    FILE *fp = fopen(LOG_FILE, "a");
+    LOG_COUNT_GLOBAL++;
+
+    FILE *fp = fopen(LOG_FILE_PATH, "a");
     if (fp == NULL) {
         perror("add_to_log: fopen");
         return;
     }
-    fprintf(fp, "%d %s\n", ++LOG_COUNT_GLOBAL, clean_command);
+    fprintf(fp, "%d %s\n", LOG_COUNT_GLOBAL, clean_command);
     fclose(fp);
 }
 
@@ -44,7 +56,7 @@ void delete_log(){
         free(LOG_BUFFER[i]);
         LOG_BUFFER[i] = NULL;
     }
-    FILE *fp = fopen(LOG_FILE, "w");
+    FILE *fp = fopen(LOG_FILE_PATH, "w");
     if(fp) 
         fclose(fp);
     else
@@ -57,7 +69,7 @@ char* get_command(int index){
     if(index < 1 || index > LOG_COUNT_GLOBAL)
         return NULL;
     
-    FILE* fp = fopen(LOG_FILE, "r+");
+    FILE* fp = fopen(LOG_FILE_PATH, "r");
     if(fp == NULL){
         perror("get_command: fopen");
         return NULL;

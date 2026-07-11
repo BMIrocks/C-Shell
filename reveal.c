@@ -25,6 +25,49 @@ static void free_entries(char **entries, int count) {
     }
 }
 
+static void print_permissions(mode_t mode, char perms[11]) {
+    memcpy(perms, "----------", 11);
+    if (S_ISDIR(mode)) perms[0] = 'd';
+    if (S_ISLNK(mode)) perms[0] = 'l';
+    if (mode & S_IRUSR) perms[1] = 'r';
+    if (mode & S_IWUSR) perms[2] = 'w';
+    if (mode & S_IXUSR) perms[3] = 'x';
+    if (mode & S_IRGRP) perms[4] = 'r';
+    if (mode & S_IWGRP) perms[5] = 'w';
+    if (mode & S_IXGRP) perms[6] = 'x';
+    if (mode & S_IROTH) perms[7] = 'r';
+    if (mode & S_IWOTH) perms[8] = 'w';
+    if (mode & S_IXOTH) perms[9] = 'x';
+}
+
+static void print_entry(const char *name, const struct stat *st, int l_flag) {
+    if (l_flag) {
+        char perms[11];
+        print_permissions(st->st_mode, perms);
+
+        struct passwd *pw = getpwuid(st->st_uid);
+        struct group  *gr = getgrgid(st->st_gid);
+        char timebuf[64];
+        struct tm *time_info = localtime(&st->st_mtime);
+        if (time_info != NULL) {
+            strftime(timebuf, sizeof(timebuf), "%b %d %H:%M", time_info);
+        } else {
+            copy_path(timebuf, sizeof(timebuf), "??? ?? ??:??");
+        }
+
+        printf("%s %2lu %s %s %5lld %s ", perms, (unsigned long)st->st_nlink,
+            pw ? pw->pw_name : "?", gr ? gr->gr_name : "?",
+            (long long)st->st_size, timebuf);
+    }
+
+    if (S_ISDIR(st->st_mode))
+        printf(COLOR_BLUE "%s\n" COLOR_RESET, name);
+    else if (st->st_mode & S_IXUSR)
+        printf(COLOR_GREEN "%s\n" COLOR_RESET, name);
+    else
+        printf(COLOR_BLACK "%s\n" COLOR_RESET, name);
+}
+
 void reveal(const char *path, int a_flag, int l_flag){
 
     char resolved_path[PATH_MAX];
@@ -58,6 +101,18 @@ void reveal(const char *path, int a_flag, int l_flag){
         return;
     }
 
+    struct stat path_stat;
+    if (lstat(resolved_path, &path_stat) == -1) {
+        perror("reveal: stat failed");
+        return;
+    }
+
+    if (!S_ISDIR(path_stat.st_mode)) {
+        const char *display_name = strrchr(resolved_path, '/');
+        display_name = (display_name != NULL) ? display_name + 1 : resolved_path;
+        print_entry(display_name, &path_stat, l_flag);
+        return;
+    }
 
     DIR* dir = opendir(resolved_path);
     if (dir == NULL) {
@@ -96,42 +151,13 @@ void reveal(const char *path, int a_flag, int l_flag){
         }
 
         struct stat st;
-        if (stat(full_path, &st) == -1) {
+        if (lstat(full_path, &st) == -1) {
             perror("reveal: stat failed");
             printf("%s\n", entries[i]);
             free(entries[i]);
             continue;
         }
-        
-        if (l_flag) {
-            char perms[11] = "----------";
-            if (S_ISDIR(st.st_mode)) perms[0] = 'd';
-            if (st.st_mode & S_IRUSR) perms[1] = 'r';
-            if (st.st_mode & S_IWUSR) perms[2] = 'w';
-            if (st.st_mode & S_IXUSR) perms[3] = 'x';
-            if (st.st_mode & S_IRGRP) perms[4] = 'r';
-            if (st.st_mode & S_IWGRP) perms[5] = 'w';
-            if (st.st_mode & S_IXGRP) perms[6] = 'x';
-            if (st.st_mode & S_IROTH) perms[7] = 'r';
-            if (st.st_mode & S_IWOTH) perms[8] = 'w';
-            if (st.st_mode & S_IXOTH) perms[9] = 'x';
-
-            struct passwd *pw = getpwuid(st.st_uid);
-            struct group  *gr = getgrgid(st.st_gid);
-            char timebuf[64];
-            strftime(timebuf, sizeof(timebuf), "%b %d %H:%M", localtime(&st.st_mtime));
-
-            printf("%s %2lu %s %s %5lld %s ", perms, (unsigned long)st.st_nlink,
-                pw ? pw->pw_name : "?", gr ? gr->gr_name : "?",
-                (long long)st.st_size, timebuf);
-        }
-
-        if (S_ISDIR(st.st_mode))
-            printf(COLOR_BLUE "%s\n" COLOR_RESET, entries[i]);
-        else if (st.st_mode & S_IXUSR)
-            printf(COLOR_GREEN "%s\n" COLOR_RESET, entries[i]);
-        else
-            printf(COLOR_BLACK "%s\n" COLOR_RESET, entries[i]);
+        print_entry(entries[i], &st, l_flag);
         
         free(entries[i]);
     }
