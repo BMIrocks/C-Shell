@@ -82,3 +82,14 @@
 82 cd
 83 reveal -a
 84 reveal -l
+85 ls
+86 cat README.md
+87 /bin/echo external-ok
+88 exit
+89 ls
+90 cat README.md
+91 /bin/echo external-ok
+92 exit
+93 ls
+94 cd main.c
+95 nano main.c

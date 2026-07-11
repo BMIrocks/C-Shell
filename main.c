@@ -70,7 +70,7 @@ static int parse_arguments(char *line, char **args, int max_args) {
             break;
         }
 
-        if (count >= max_args) {
+        if (count >= max_args - 1) {
             fprintf(stderr, "Too many arguments\n");
             return -1;
         }
@@ -113,6 +113,7 @@ static int parse_arguments(char *line, char **args, int max_args) {
         *write_cursor++ = '\0';
     }
 
+    args[count] = NULL;
     return count;
 }
 
@@ -132,7 +133,7 @@ int main() {
             continue;
         }
         
-        input[strcspn(input, "\n")] = '\0';
+        input[strcspn(input, "\r\n")] = '\0';
         if (strlen(input) == 0)
             continue;
 
@@ -242,7 +243,22 @@ int main() {
                 return 0;
             }
             else {
-                fprintf(stderr, "Unknown command: %s\n", command);
+                pid_t pid = fork();
+                if (pid < 0) {
+                    perror("fork");
+                    continue;
+                }
+
+                if (pid == 0) {
+                    execvp(args[0], args);
+                    perror(args[0]);
+                    _exit(127);
+                }
+
+                int status;
+                if (waitpid(pid, &status, 0) < 0) {
+                    perror("waitpid");
+                }
             }
         }
     }
